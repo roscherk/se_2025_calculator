@@ -1,0 +1,7 @@
+/bin/
+/out/
+/dist/
+/go/
+/.go/
+.vscode/
+.idea/
