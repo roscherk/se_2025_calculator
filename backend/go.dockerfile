@@ -1,0 +1,20 @@
+FROM golang:1.24.5-alpine3.22 AS builder
+
+WORKDIR /app
+
+COPY . .
+
+RUN go mod download
+
+WORKDIR /app/cmd
+RUN go build -o se_2025_calculator .
+
+FROM alpine:3.22
+
+WORKDIR /app
+
+COPY --from=builder /app/cmd/se_2025_calculator .
+
+EXPOSE 8000
+
+CMD [ "./se_2025_calculator" ]
