@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	_ "github.com/lib/pq"
 	loggersrc "github.com/roscherk/se_2025_calculator/logger_src"
 )
 
@@ -19,15 +20,15 @@ func (curDbHandler DbHandler) Close() {
 }
 
 func (curDbHandler DbHandler) DoQueryRow(query string, args ...any) *sql.Row {
-	return curDbHandler.curDb.QueryRow(query)
+	return curDbHandler.curDb.QueryRow(query, args...)
 }
 
 func (curDbHandler DbHandler) DoQuery(query string, args ...any) (*sql.Rows, error) {
-	return curDbHandler.curDb.Query(query, args)
+	return curDbHandler.curDb.Query(query, args...)
 }
 
 func (curDbHandler DbHandler) DoExec(query string, args ...any) (sql.Result, error) {
-	return curDbHandler.curDb.Exec(query, args)
+	return curDbHandler.curDb.Exec(query, args...)
 }
 
 func (curDbHandler DbHandler) createTables() {

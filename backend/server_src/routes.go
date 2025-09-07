@@ -35,7 +35,23 @@ type RegisterResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
-// @Summary Зарегестрировать новое устройство
+func (curRoutesHandler RoutesHandler) isUserRegistrated(id int) (bool, error) {
+	var count int
+	err := curRoutesHandler.CurDb.DoQueryRow("SELECT id FROM users WHERE id = $1", id).Scan(&count)
+
+	if err != nil {
+		curRoutesHandler.Logger.Log(err.Error())
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// @Summary Зарегистрировать новое устройство
+// @Description Создает нового пользователя и возвращает его ID
+// @Tags users
+// @Produce json
+// @Success 200 {object} RegisterResponse
+// @Failure 400 {object} ErrorResponse
 // @Router /register [get]
 func (curRoutesHandler RoutesHandler) registerUser(c *fiber.Ctx) error {
 
@@ -59,12 +75,19 @@ func (curRoutesHandler RoutesHandler) registerUser(c *fiber.Ctx) error {
 
 type HistoryResponse struct {
 	Success bool     `json:"success"`
-	Data    []string `json:"data,omitempty"`
+	Data    []string `json:"data"`
 	Error   string   `json:"error,omitempty"`
 }
 
-// @Summary Получить историю
-// @Router /history [get]
+// @Summary Получить историю вычислений
+// @Description Возвращает историю вычислений для указанного пользователя
+// @Tags history
+// @Produce json
+// @Param id path int true "User ID"
+// @Success 200 {object} HistoryResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /history/{id} [get]
 func (curRoutesHandler RoutesHandler) getHistory(c *fiber.Ctx) error {
 	curRoutesHandler.Logger.Log("Trying sending history")
 	tmpid := c.Params("id")
@@ -77,8 +100,26 @@ func (curRoutesHandler RoutesHandler) getHistory(c *fiber.Ctx) error {
 			Error:   "ID must be a number",
 		})
 	}
-	curRoutesHandler.Logger.Log(fmt.Sprintf("Successfully found history of user: %v", id))
+	isUserReg, err := curRoutesHandler.isUserRegistrated(id)
+	if err != nil {
+		curRoutesHandler.Logger.Log(err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
+			Success: false,
+			Error:   "DB error: " + err.Error(),
+		})
+	}
+
+	if !isUserReg {
+		curRoutesHandler.Logger.Log("Not registrated user tried to get history")
+		return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
+			Success: false,
+			Error:   "User is'n registered",
+		})
+	}
+
+	curRoutesHandler.Logger.Log(fmt.Sprintf("Trying to find history of user: %v", id))
 	rows, err := curRoutesHandler.CurDb.DoQuery("SELECT expression FROM history WHERE id = $1", id)
+
 	if err != nil {
 		curRoutesHandler.Logger.Log(err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
@@ -88,10 +129,10 @@ func (curRoutesHandler RoutesHandler) getHistory(c *fiber.Ctx) error {
 	}
 
 	defer rows.Close()
-
+	curRoutesHandler.Logger.Log(fmt.Sprintf("Successfully found history of user: %v", id))
 	curRoutesHandler.Logger.Log("Starting collecting info from DB")
 	//collecting data for DB
-	var historyMas []string
+	var historyMas = []string{}
 	for rows.Next() {
 		var curExpression string
 		if err := rows.Scan(&curExpression); err != nil {
@@ -101,6 +142,8 @@ func (curRoutesHandler RoutesHandler) getHistory(c *fiber.Ctx) error {
 				Error:   "Data parsing error: " + err.Error(),
 			})
 		}
+
+		curRoutesHandler.Logger.Log(fmt.Sprintf("Added expression: %s", curExpression))
 		historyMas = append(historyMas, curExpression)
 	}
 
@@ -111,7 +154,7 @@ func (curRoutesHandler RoutesHandler) getHistory(c *fiber.Ctx) error {
 			Error:   "Rows iteration error",
 		})
 	}
-	curRoutesHandler.Logger.Log(fmt.Sprintf("Sending history to user user: %v", id))
+	curRoutesHandler.Logger.Log(fmt.Sprintf("Sending history to user: %v", id))
 	return c.JSON(HistoryResponse{
 		Success: true,
 		Data:    historyMas,
@@ -119,8 +162,8 @@ func (curRoutesHandler RoutesHandler) getHistory(c *fiber.Ctx) error {
 }
 
 type CalculationRequest struct {
-	UserID     int
-	Expression string
+	UserID     int    `json:"user_id"`
+	Expression string `json:"expression"`
 }
 
 type CalculationResponse struct {
@@ -129,7 +172,15 @@ type CalculationResponse struct {
 	Error   string  `json:"error,omitempty"`
 }
 
-// @Summary Посчитать выражение
+// @Summary Вычислить выражение
+// @Description Вычисляет математическое выражение и сохраняет в историю
+// @Tags calculator
+// @Accept json
+// @Produce json
+// @Param request body CalculationRequest true "Данные для вычисления"
+// @Success 200 {object} CalculationResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
 // @Router /calculate [post]
 func (curRoutesHandler RoutesHandler) calculateExpression(c *fiber.Ctx) error {
 	curRoutesHandler.Logger.Log("Starting reading expression")
@@ -143,6 +194,22 @@ func (curRoutesHandler RoutesHandler) calculateExpression(c *fiber.Ctx) error {
 		})
 	}
 
+	isUserReg, err := curRoutesHandler.isUserRegistrated(req.UserID)
+	if err != nil {
+		curRoutesHandler.Logger.Log(err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
+			Success: false,
+			Error:   "DB error: " + err.Error(),
+		})
+	}
+
+	if !isUserReg {
+		curRoutesHandler.Logger.Log("Not registrated user tried to get history")
+		return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
+			Success: false,
+			Error:   "User is'n registered",
+		})
+	}
 	curRoutesHandler.Logger.Log(fmt.Sprintf("Trying to calculate expression: %s \nFrom user: %v", req.Expression, req.UserID))
 	ansOfExpression, err := calculator.Evaluate(req.Expression)
 	if err != nil {
@@ -153,8 +220,12 @@ func (curRoutesHandler RoutesHandler) calculateExpression(c *fiber.Ctx) error {
 		})
 	}
 	exprValue := fmt.Sprintf("%s=%f", req.Expression, ansOfExpression)
-	_, err = curRoutesHandler.CurDb.DoExec("INSERT INTO history (id, expression) VALUES ($1, $2)", req.UserID, exprValue)
-
+	_, err = curRoutesHandler.CurDb.DoExec(
+		"INSERT INTO history (id, expression) VALUES ($1, $2)",
+		req.UserID,
+		exprValue,
+	)
+	curRoutesHandler.Logger.Log(fmt.Sprintf("command done: INSERT INTO history (id, expression) VALUES (%v, %s)", req.UserID, exprValue))
 	if err != nil {
 		curRoutesHandler.Logger.Log(err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
