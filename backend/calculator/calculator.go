@@ -1,4 +1,4 @@
-package main
+package calculator
 
 import (
 	"github.com/expr-lang/expr"

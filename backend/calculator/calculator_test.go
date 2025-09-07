@@ -1,0 +1,50 @@
+package calculator
+
+import (
+	"testing"
+)
+
+func TestEvaluate(t *testing.T) {
+	tests := []struct {
+		name     string
+		expr     string
+		expected float64
+		hasError bool
+	}{
+		{
+			name:     "simple addition",
+			expr:     "2 + 3",
+			expected: 5,
+			hasError: false,
+		},
+		{
+			name:     "division by zero",
+			expr:     "10 / 0",
+			expected: 0,
+			hasError: true, // expecting error
+		},
+		// more tests
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := Evaluate(tt.expr)
+
+			if tt.hasError {
+				if err == nil {
+					t.Errorf("Expected error for expression %s, but got nil and result %f", tt.expr, res)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Unexpected error for expression %s: %v", tt.expr, err)
+				return
+			}
+
+			if res != tt.expected {
+				t.Errorf("Evaluate(%s) = %f, expected %f", tt.expr, res, tt.expected)
+			}
+		})
+	}
+}
