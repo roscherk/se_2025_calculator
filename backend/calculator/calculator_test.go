@@ -12,6 +12,18 @@ func TestEvaluate(t *testing.T) {
 		hasError bool
 	}{
 		{
+			name:     "empty", // i think its good to expect 0 without exception
+			expr:     "",
+			expected: 0,
+			hasError: false,
+		},
+		{
+			name:     "empty with spaces",
+			expr:     "     ",
+			expected: 0,
+			hasError: false,
+		},
+		{
 			name:     "one number",
 			expr:     "-2.6",
 			expected: -2.6,
