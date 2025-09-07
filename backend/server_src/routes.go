@@ -124,8 +124,9 @@ type CalculationRequest struct {
 }
 
 type CalculationResponse struct {
-	Success bool   `json:"success"`
-	Error   string `json:"error,omitempty"`
+	Success bool    `json:"success"`
+	Data    float64 `json:"data,omitempty"`
+	Error   string  `json:"error,omitempty"`
 }
 
 // @Summary Посчитать выражение
@@ -163,5 +164,6 @@ func (curRoutesHandler RoutesHandler) calculateExpression(c *fiber.Ctx) error {
 	}
 	return c.Status(fiber.StatusOK).JSON(CalculationResponse{
 		Success: true,
+		Data:    ansOfExpression,
 	})
 }
