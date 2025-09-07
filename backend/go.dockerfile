@@ -6,7 +6,7 @@ COPY . .
 
 RUN go mod download
 
-WORKDIR /app/cmd
+WORKDIR /app
 RUN go build -o se_2025_calculator .
 
 FROM alpine:3.22
