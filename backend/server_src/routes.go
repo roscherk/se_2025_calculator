@@ -23,10 +23,16 @@ type RoutesHandler struct {
 	CurDb  *dbsrc.DbHandler
 }
 
-type Response struct {
+type ErrorResponse struct {
 	Success bool        `json:"success"`
 	Data    interface{} `json:"data,omitempty"`
 	Error   string      `json:"error,omitempty"`
+}
+
+type RegisterResponse struct {
+	Success bool   `json:"success"`
+	Data    int    `json:"data,omitempty"`
+	Error   string `json:"error,omitempty"`
 }
 
 // @Summary Зарегестрировать новое устройство
@@ -39,16 +45,22 @@ func (curRoutesHandler RoutesHandler) registerUser(c *fiber.Ctx) error {
 
 	if err != nil {
 		curRoutesHandler.Logger.Log(err.Error())
-		return c.Status(fiber.StatusBadRequest).JSON(Response{
+		return c.Status(fiber.StatusBadRequest).JSON(ErrorResponse{
 			Success: false,
 			Error:   err.Error(),
 		})
 	}
 	curRoutesHandler.Logger.Log(fmt.Sprintf("Successfully registered user: %v", userID))
-	return c.Status(fiber.StatusOK).JSON(Response{
+	return c.Status(fiber.StatusOK).JSON(RegisterResponse{
 		Success: true,
 		Data:    userID,
 	})
+}
+
+type HistoryResponse struct {
+	Success bool     `json:"success"`
+	Data    []string `json:"data,omitempty"`
+	Error   string   `json:"error,omitempty"`
 }
 
 // @Summary Получить историю
@@ -60,7 +72,7 @@ func (curRoutesHandler RoutesHandler) getHistory(c *fiber.Ctx) error {
 
 	if err != nil {
 		curRoutesHandler.Logger.Log(err.Error())
-		return c.Status(fiber.StatusBadRequest).JSON(Response{
+		return c.Status(fiber.StatusBadRequest).JSON(ErrorResponse{
 			Success: false,
 			Error:   "ID must be a number",
 		})
@@ -69,7 +81,7 @@ func (curRoutesHandler RoutesHandler) getHistory(c *fiber.Ctx) error {
 	rows, err := curRoutesHandler.CurDb.DoQuery("SELECT expression FROM history WHERE id = $1", id)
 	if err != nil {
 		curRoutesHandler.Logger.Log(err.Error())
-		return c.Status(fiber.StatusInternalServerError).JSON(Response{
+		return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
 			Success: false,
 			Error:   "DB error: " + err.Error(),
 		})
@@ -84,7 +96,7 @@ func (curRoutesHandler RoutesHandler) getHistory(c *fiber.Ctx) error {
 		var curExpression string
 		if err := rows.Scan(&curExpression); err != nil {
 			curRoutesHandler.Logger.Log(err.Error())
-			return c.Status(fiber.StatusInternalServerError).JSON(Response{
+			return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
 				Success: false,
 				Error:   "Data parsing error: " + err.Error(),
 			})
@@ -94,13 +106,13 @@ func (curRoutesHandler RoutesHandler) getHistory(c *fiber.Ctx) error {
 
 	if err := rows.Err(); err != nil {
 		curRoutesHandler.Logger.Log(err.Error())
-		return c.Status(fiber.StatusInternalServerError).JSON(Response{
+		return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
 			Success: false,
 			Error:   "Rows iteration error",
 		})
 	}
 	curRoutesHandler.Logger.Log(fmt.Sprintf("Sending history to user user: %v", id))
-	return c.JSON(Response{
+	return c.JSON(HistoryResponse{
 		Success: true,
 		Data:    historyMas,
 	})
@@ -111,6 +123,11 @@ type CalculationRequest struct {
 	Expression string
 }
 
+type CalculationResponse struct {
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
+}
+
 // @Summary Посчитать выражение
 // @Router /calculate [post]
 func (curRoutesHandler RoutesHandler) calculateExpression(c *fiber.Ctx) error {
@@ -119,7 +136,7 @@ func (curRoutesHandler RoutesHandler) calculateExpression(c *fiber.Ctx) error {
 	var req CalculationRequest
 	if err := c.BodyParser(&req); err != nil {
 		curRoutesHandler.Logger.Log(err.Error())
-		return c.Status(fiber.StatusBadRequest).JSON(Response{
+		return c.Status(fiber.StatusBadRequest).JSON(ErrorResponse{
 			Success: false,
 			Error:   "Invalid JSON format: " + err.Error(),
 		})
@@ -129,7 +146,7 @@ func (curRoutesHandler RoutesHandler) calculateExpression(c *fiber.Ctx) error {
 	ansOfExpression, err := calculator.Evaluate(req.Expression)
 	if err != nil {
 		curRoutesHandler.Logger.Log(err.Error())
-		return c.Status(fiber.StatusBadRequest).JSON(Response{
+		return c.Status(fiber.StatusBadRequest).JSON(ErrorResponse{
 			Success: false,
 			Error:   err.Error(),
 		})
@@ -139,12 +156,12 @@ func (curRoutesHandler RoutesHandler) calculateExpression(c *fiber.Ctx) error {
 
 	if err != nil {
 		curRoutesHandler.Logger.Log(err.Error())
-		return c.Status(fiber.StatusInternalServerError).JSON(Response{
+		return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
 			Success: false,
 			Error:   "DB error: " + err.Error(),
 		})
 	}
-	return c.Status(fiber.StatusOK).JSON(Response{
+	return c.Status(fiber.StatusOK).JSON(CalculationResponse{
 		Success: true,
 	})
 }
