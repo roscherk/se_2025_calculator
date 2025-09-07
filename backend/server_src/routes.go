@@ -35,7 +35,7 @@ type RegisterResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
-func (curRoutesHandler RoutesHandler) isUserRegistrated(id int) (bool, error) {
+func (curRoutesHandler RoutesHandler) isUserRegistered(id int) (bool, error) {
 	var count int
 	err := curRoutesHandler.CurDb.DoQueryRow("SELECT id FROM users WHERE id = $1", id).Scan(&count)
 
@@ -100,7 +100,7 @@ func (curRoutesHandler RoutesHandler) getHistory(c *fiber.Ctx) error {
 			Error:   "ID must be a number",
 		})
 	}
-	isUserReg, err := curRoutesHandler.isUserRegistrated(id)
+	isUserReg, err := curRoutesHandler.isUserRegistered(id)
 	if err != nil {
 		curRoutesHandler.Logger.Log(err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
@@ -110,7 +110,7 @@ func (curRoutesHandler RoutesHandler) getHistory(c *fiber.Ctx) error {
 	}
 
 	if !isUserReg {
-		curRoutesHandler.Logger.Log("Not registrated user tried to get history")
+		curRoutesHandler.Logger.Log("Not registered user tried to get history")
 		return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
 			Success: false,
 			Error:   "User is'n registered",
@@ -194,7 +194,7 @@ func (curRoutesHandler RoutesHandler) calculateExpression(c *fiber.Ctx) error {
 		})
 	}
 
-	isUserReg, err := curRoutesHandler.isUserRegistrated(req.UserID)
+	isUserReg, err := curRoutesHandler.isUserRegistered(req.UserID)
 	if err != nil {
 		curRoutesHandler.Logger.Log(err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
@@ -204,7 +204,7 @@ func (curRoutesHandler RoutesHandler) calculateExpression(c *fiber.Ctx) error {
 	}
 
 	if !isUserReg {
-		curRoutesHandler.Logger.Log("Not registrated user tried to get history")
+		curRoutesHandler.Logger.Log("Not registered user tried to get history")
 		return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
 			Success: false,
 			Error:   "User is'n registered",
