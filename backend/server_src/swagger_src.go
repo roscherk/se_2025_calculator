@@ -9,7 +9,7 @@ import (
 	loggersrc "github.com/roscherk/se_2025_calculator/logger_src"
 )
 
-func SetupSwagger(app **fiber.App, port int, logger loggersrc.Logger) {
+func SetupSwagger(app **fiber.App, port int, logger loggersrc.ILogger) {
 	(*app).Get("/swagger/*", swagger.New(swagger.Config{
 		URL:         fmt.Sprintf("http://localhost:%d/swagger/doc.json", port),
 		DeepLinking: true,

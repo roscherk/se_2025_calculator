@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	dbsrc "github.com/roscherk/se_2025_calculator/db_src"
 	_ "github.com/roscherk/se_2025_calculator/docs"
 	loggersrc "github.com/roscherk/se_2025_calculator/logger_src"
 	serversrc "github.com/roscherk/se_2025_calculator/server_src"
@@ -21,8 +22,10 @@ func main() {
 
 	curLogger := loggersrc.BaseLogger{}
 
+	curDB := dbsrc.InitDb(curLogger)
+	defer curDB.Close()
 	serversrc.SetupSwagger(&app, port, curLogger)
-	serversrc.SetupRoutes(&app, curLogger)
+	serversrc.SetupRoutes(&app, curLogger, curDB)
 
 	curLogger.Log("Server is starting")
 	app.Listen(fmt.Sprintf(":%d", port))

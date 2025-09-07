@@ -6,7 +6,7 @@ import (
 	_ "github.com/roscherk/se_2025_calculator/docs"
 )
 
-type Logger interface {
+type ILogger interface {
 	Log(string)
 }
 
