@@ -33,7 +33,7 @@ type Response struct {
 // @Router /register [get]
 func (curRoutesHandler RoutesHandler) registerUser(c *fiber.Ctx) error {
 
-	curRoutesHandler.Logger.Log(fmt.Sprintf("Trying register user"))
+	curRoutesHandler.Logger.Log("Trying register user")
 	var userID int
 	err := curRoutesHandler.CurDb.DoQueryRow("INSERT INTO users DEFAULT VALUES RETURNING id").Scan(&userID)
 
@@ -54,7 +54,7 @@ func (curRoutesHandler RoutesHandler) registerUser(c *fiber.Ctx) error {
 // @Summary Получить историю
 // @Router /history [get]
 func (curRoutesHandler RoutesHandler) getHistory(c *fiber.Ctx) error {
-	curRoutesHandler.Logger.Log(fmt.Sprintf("Trying sending history"))
+	curRoutesHandler.Logger.Log("Trying sending history")
 	tmpid := c.Params("id")
 	id, err := strconv.Atoi(tmpid)
 
