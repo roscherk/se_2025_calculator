@@ -12,9 +12,33 @@ func TestEvaluate(t *testing.T) {
 		hasError bool
 	}{
 		{
+			name:     "one number",
+			expr:     "-2.6",
+			expected: -2.6,
+			hasError: false,
+		},
+		{
 			name:     "simple addition",
 			expr:     "2 + 3",
 			expected: 5,
+			hasError: false,
+		},
+		{
+			name:     "simple subtraction",
+			expr:     "2 - 7",
+			expected: -5,
+			hasError: false,
+		},
+		{
+			name:     "simple multiplication",
+			expr:     "5 * 3",
+			expected: 15,
+			hasError: false,
+		},
+		{
+			name:     "simple division",
+			expr:     "4 / 2",
+			expected: 2,
 			hasError: false,
 		},
 		{
@@ -22,6 +46,12 @@ func TestEvaluate(t *testing.T) {
 			expr:     "10 / 0",
 			expected: 0,
 			hasError: true, // expecting error
+		},
+		{
+			name:     "more complicated expression",
+			expr:     "1 / (4 + 2 * 3) + 17 * (5 - 9)",
+			expected: -67.9,
+			hasError: false, // expecting error
 		},
 		// more tests
 	}
