@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 
 class Pair<T1, T2> {
   final T1 first;
@@ -8,8 +9,28 @@ class Pair<T1, T2> {
   Pair(this.first, this.second);
 }
 
-void main() {
-  runApp(CalcApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // инициализируем плагин
+  await windowManager.ensureInitialized();
+
+  // опции окна: начальный размер и минимальный размер
+  const WindowOptions windowOptions = WindowOptions(
+    //size: Size(800, 600),
+    minimumSize: Size(1000, 1000),
+    center: true,
+  );
+
+  // ждём, пока окно готово к показу, затем показываем и фокусируем
+  await windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
+
+  await windowManager.setMinimumSize(const Size(1000, 1000));
+
+  runApp(const CalcApp());
 }
 
 class CalcApp extends StatelessWidget {
@@ -17,16 +38,19 @@ class CalcApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => CalcAppState(),
-      child: MaterialApp(
-        title: 'Calculator',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color.fromARGB(255, 244, 186, 26),
+    return Container(
+      constraints: BoxConstraints(minWidth: 2000.0, minHeight: 2000.0),
+      child: ChangeNotifierProvider(
+        create: (context) => CalcAppState(),
+        child: MaterialApp(
+          title: 'Calculator',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color.fromARGB(255, 248, 151, 67),
+            ),
           ),
+          home: HomePage(),
         ),
-        home: CalculatorPage(),
       ),
     );
   }
@@ -38,7 +62,6 @@ class CalcAppState extends ChangeNotifier {
   var answer = 0.0;
 
   void doCalc() {
-    // получаем ответ
     history.add(Pair(currentExpression, answer));
     print(history);
     currentExpression = answer.toString();
@@ -47,31 +70,120 @@ class CalcAppState extends ChangeNotifier {
 
   void addSymbolToExp(String symbol) {
     currentExpression += symbol;
+    print(symbol);
     notifyListeners();
   }
 
   void clearSymbolInExp() {
-    if (currentExpression == "") {
-      notifyListeners();
-      return;
-    }
-    currentExpression = currentExpression.substring(
-      0,
-      currentExpression.length - 1,
-    );
+    currentExpression = "";
     notifyListeners();
   }
 
   void getAnswer() {}
 }
 
-// class HistoryPage extends StatelessWidget{
-//   @override
-//   Widget build(BuildContext context) {
+class HomePage extends StatefulWidget {
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
 
-//     throw UnimplementedError();
-//   }
-// }
+class _HomePageState extends State<HomePage> {
+  var selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget page;
+    switch (selectedIndex) {
+      case 0:
+        page = CalculatorPage();
+      case 1:
+        page = HistoryPage();
+      default:
+        throw UnimplementedError('no widget for $selectedIndex');
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Scaffold(
+          body: Row(
+            children: [
+              SafeArea(
+                child: NavigationRail(
+                  extended: constraints.maxWidth >= 800,
+                  destinations: [
+                    NavigationRailDestination(
+                      icon: Icon(Icons.calculate),
+                      label: Text('Calculator'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.notes),
+                      label: Text('History'),
+                    ),
+                  ],
+                  selectedIndex: selectedIndex,
+                  onDestinationSelected: (value) {
+                    print('selected: $value');
+                    setState(() {
+                      selectedIndex = value;
+                    });
+                  },
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  child: page,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class HistoryPage extends StatelessWidget {
+  const HistoryPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final CalcAppState appState = context.watch<CalcAppState>();
+
+    return Column(
+      children: [
+        Row(
+          children: const [
+            Expanded(flex: 1, child: SizedBox.shrink()),
+            Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text(
+                "Your operations:",
+                style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Expanded(flex: 3, child: SizedBox.shrink()),
+          ],
+        ),
+
+        Expanded(
+          child: appState.history.isEmpty
+              ? const Center(child: Text(''))
+              : ListView.builder(
+                  itemCount: appState.history.length,
+                  itemBuilder: (context, index) {
+                    final pair = appState.history[index];
+                    return ListTile(
+                      leading: const Icon(Icons.history),
+                      title: Text('${pair.first} = ${pair.second}'),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+}
 
 class CalculatorPage extends StatefulWidget {
   @override
@@ -83,27 +195,26 @@ class _CalculatorPageState extends State<CalculatorPage> {
   Widget build(BuildContext context) {
     var calcAppState = context.watch<CalcAppState>();
     var currExp = calcAppState.currentExpression;
-    return Center(
-      child: SizedBox(
-        height: 600,
-        width: 400,
+    return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 56, 14, 83),
+      body: Center(
         child: Container(
-          color: const Color.fromARGB(255, 81, 81, 81),
-          child: Center(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(3.0),
-                  child: ViewPanel(currExp: currExp),
-                ),
-                Row(
-                  children: [
-                    Expanded(child: Container()),
-                    ButtonsPanel(calcAppState: calcAppState),
-                    Expanded(child: Container()),
-                  ],
-                ),
-              ],
+          decoration: BoxDecoration(
+            color: Colors.black, // Задает синий цвет фона
+            borderRadius: BorderRadius.circular(10.0),
+            border: Border.all(color: Colors.black),
+          ),
+          child: SizedBox(
+            height: 400,
+            width: 285,
+            child: Padding(
+              padding: EdgeInsets.all(10),
+              child: Column(
+                children: [
+                  ViewPanel(currExp: currExp),
+                  ButtonsPanel(calcAppState: calcAppState),
+                ],
+              ),
             ),
           ),
         ),
@@ -286,38 +397,83 @@ class ButtonsPanel extends StatelessWidget {
   }
 }
 
-class ViewPanel extends StatelessWidget {
+class ViewPanel extends StatefulWidget {
   const ViewPanel({super.key, required this.currExp});
 
   final String currExp;
 
   @override
+  State<ViewPanel> createState() => _ViewPanelState();
+}
+
+class _ViewPanelState extends State<ViewPanel> {
+  late final ScrollController _hController;
+
+  @override
+  void initState() {
+    super.initState();
+    _hController = ScrollController();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_hController.hasClients) return;
+      final max = _hController.position.maxScrollExtent;
+      if (max > 0) {
+        _hController.jumpTo(max);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _hController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    print(currExp);
+    print(widget.currExp);
     return Card(
       color: Colors.grey,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3.5)),
       child: Padding(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(5),
         child: SizedBox(
-          height: 50,
-          width: 236,
-          child: Row(
-            children: [
-              Expanded(child: Container(color: Colors.grey)),
-              Column(
-                children: [
-                  Expanded(child: Container(color: Colors.grey)),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal, // Или Axis.horizontal
-                    child: Text(
-                      currExp,
-                      style: TextStyle(color: Colors.black, fontSize: 25.0),
-                      overflow: TextOverflow.clip
+          height: 60,
+          width: 240,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Scrollbar(
+                controller: _hController,
+                thumbVisibility: true,
+                thickness: 8,
+                radius: const Radius.circular(8),
+                notificationPredicate: (_) => true,
+                child: SingleChildScrollView(
+                  controller: _hController,
+                  scrollDirection: Axis.horizontal,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: constraints.maxWidth,
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          widget.currExp,
+                          softWrap: false,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 25.0,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ],
+                ),
+              );
+            },
           ),
         ),
       ),
