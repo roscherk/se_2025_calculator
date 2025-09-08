@@ -1,376 +1,385 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 
-class Pair<T1, T2> {
-  final T1 first;
-  final T2 second;
-
-  Pair(this.first, this.second);
-}
+import 'package:sprint_0_calculator/constants.dart';
+import 'package:sprint_0_calculator/calc_button.dart';
+import 'package:sprint_0_calculator/history.dart';
 
 void main() {
-  runApp(CalcApp());
+  runApp(const BootstrapApp());
 }
 
-class CalcApp extends StatelessWidget {
-  const CalcApp({super.key});
+class BootstrapApp extends StatelessWidget {
+  const BootstrapApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => CalcAppState(),
-      child: MaterialApp(
-        title: 'Calculator',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color.fromARGB(255, 244, 186, 26),
-          ),
-        ),
-        home: CalculatorPage(),
+    return WidgetsAppWithMediaQuery();
+  }
+}
+
+class WidgetsAppWithMediaQuery extends StatelessWidget {
+  const WidgetsAppWithMediaQuery({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Builder(
+        builder: (context) {
+          final paddingUnit = MediaQuery.of(context).size.width / 49;
+          final bottomPadding = MediaQuery.of(context).padding.bottom / 1.13;
+          final topPadding = max(
+              0.0,
+              MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  Constants.bottomNavigationBarHeight * paddingUnit -
+                  Constants.screenHeight * paddingUnit -
+                  bottomPadding);
+          final constants = Constants(
+            paddingUnit: paddingUnit,
+            topPadding: topPadding,
+            bottomPadding: bottomPadding,
+          );
+
+          return ProviderScope(
+            overrides: [
+              constantsProvider.overrideWithValue(constants),
+            ],
+            child: const Calculator(),
+          );
+        },
       ),
     );
   }
 }
 
-class CalcAppState extends ChangeNotifier {
-  var history = <Pair<String, double>>[];
-  var currentExpression = "1+1";
-  var answer = 0.0;
+class Calculator extends StatelessWidget {
+  const Calculator({super.key});
+  static const serverIP = '93.95.97.57';
+  static const serverPort = '8080';
 
-  void doCalc() {
-    // получаем ответ
-    history.add(Pair(currentExpression, answer));
-    print(history);
-    currentExpression = answer.toString();
-    notifyListeners();
-  }
-
-  void addSymbolToExp(String symbol) {
-    currentExpression += symbol;
-    notifyListeners();
-  }
-
-  void clearSymbolInExp() {
-    if (currentExpression == "") {
-      notifyListeners();
-      return;
-    }
-    currentExpression = currentExpression.substring(
-      0,
-      currentExpression.length - 1,
-    );
-    notifyListeners();
-  }
-
-  void getAnswer() {}
-}
-
-// class HistoryPage extends StatelessWidget{
-//   @override
-//   Widget build(BuildContext context) {
-
-//     throw UnimplementedError();
-//   }
-// }
-
-class CalculatorPage extends StatefulWidget {
-  @override
-  State<CalculatorPage> createState() => _CalculatorPageState();
-}
-
-class _CalculatorPageState extends State<CalculatorPage> {
   @override
   Widget build(BuildContext context) {
-    var calcAppState = context.watch<CalcAppState>();
-    var currExp = calcAppState.currentExpression;
-    return Center(
-      child: SizedBox(
-        height: 600,
-        width: 400,
-        child: Container(
-          color: const Color.fromARGB(255, 81, 81, 81),
-          child: Center(
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Calculator',
+      theme: ThemeData(
+        colorScheme: const ColorScheme.dark().copyWith(
+          primary: Colors.white,
+          background: Colors.black,
+        ),
+        textTheme: GoogleFonts.jersey25TextTheme().apply(
+          bodyColor: Colors.white,
+          displayColor: Colors.white,
+        ),
+      ),
+      home: const CalculatorHomePage(),
+    );
+  }
+}
+
+class CalculatorHomePage extends ConsumerStatefulWidget {
+  const CalculatorHomePage({super.key});
+
+  @override
+  ConsumerState<CalculatorHomePage> createState() => _CalculatorHomePageState();
+}
+
+class _CalculatorHomePageState extends ConsumerState<CalculatorHomePage> {
+  String _currentExpression = '';
+  TextStyle? _expressionStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final constants = ref.watch(constantsProvider);
+
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle.dark.copyWith(
+        systemNavigationBarColor: Theme.of(context).colorScheme.background,
+      ),
+    );
+
+    _expressionStyle ??= Theme.of(context).textTheme.displaySmall;
+
+    const List<List<String>> buttons = [
+      ['C', '(', ')', '÷'],
+      ['7', '8', '9', '×'],
+      ['4', '5', '6', '-'],
+      ['1', '2', '3', '+'],
+      ['.', '0', '±', '=']
+    ];
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF9D9D9D),
+      body: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          var notificationBarHeight = constants.topPadding;
+          var availableHeight = constraints.maxHeight -
+              notificationBarHeight -
+              constants.bottomPadding;
+          var textBoxSize = availableHeight / 3;
+          var keyboardSize = availableHeight * 2 / 3;
+          var buttonSize = Size(
+            constants.paddingUnit * 9, constants.paddingUnit * 9
+          );
+
+          return SafeArea(
             child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.all(3.0),
-                  child: ViewPanel(currExp: currExp),
+                Expanded(flex: 121, child: Placeholder()),
+                Expanded(flex: 73, child: Placeholder()),
+                Expanded(
+                  flex: 145,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                        left: constants.paddingUnit * 3,
+                        right: constants.paddingUnit * 3,
+                        bottom: constants.paddingUnit * 3),
+                    child: Container(
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius:
+                              BorderRadius.circular(constants.dOuterRadius),
+                          border: BoxBorder.all(
+                              color: Colors.black,
+                              width: constants.paddingUnit)),
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          left: constants.paddingUnit * 2,
+                          right: constants.paddingUnit * 2,
+                          top: constants.paddingUnit,
+                        ),
+                        child: Stack(
+                          children: [
+                            Align(
+                              alignment: Alignment.bottomRight,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                reverse: true,
+                                child: Text(
+                                  _currentExpression,
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: constants.paddingUnit * 6),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                Row(
-                  children: [
-                    Expanded(child: Container()),
-                    ButtonsPanel(calcAppState: calcAppState),
-                    Expanded(child: Container()),
-                  ],
+                Expanded(
+                  flex: 493,
+                  child: Padding(
+                    padding: EdgeInsets.only(left: constants.paddingUnit * 3, right: constants.paddingUnit * 3),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final numRows = buttons.length;
+                        final buttonSide = constants.paddingUnit;
+                    
+                        return GestureDetector(
+                          onPanUpdate: (details) {
+                            const xSensitivity = 8;
+                            const ySensitivity = 4;
+                            if (details.delta.dx >= xSensitivity &&
+                                details.delta.dy.abs() <= ySensitivity) {
+                              _navigateToHistory();
+                            }
+                          },
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: Table(
+                              // defaultColumnWidth: FixedColumnWidth(buttonSide),
+                              children: List<TableRow>.generate(
+                                buttons.length,
+                                (row) => TableRow(
+                                  children: List.generate(
+                                    buttons[row].length,
+                                    (col) {
+                                      const colorA =
+                                          Color(0xFFB3B3B3); // Серый
+                                      const colorB =
+                                          Color(0xFFD8BC8C); // Бледно-желтый
+                                      const colorC =
+                                          Color(0xFFE8E8E8); // Светло-серый
+                    
+                                      bool isFirstRowSpecial =
+                                          row == 0 && col < 3;
+                                      bool isLastCol =
+                                          col == buttons[row].length - 1;
+                    
+                                      final backgroundColor = isFirstRowSpecial
+                                          ? colorA
+                                          : (isLastCol ? colorB : colorC);
+                    
+                                      return CalcButton(
+                                        buttonText: buttons[row][col],
+                                        size: buttonSize,
+                                        color: backgroundColor,
+                                        textSize: constants.paddingUnit * 13,
+                                        onPressed: () =>
+                                            _handleButtonPress(buttons[row][col]),
+                                        onLongPress: () => _handleButtonLongPress(
+                                            buttons[row][col]),
+                                        borderColor: Colors.black,
+                                        textColor: Colors.black,
+                                        margin: EdgeInsets.all(constants.paddingUnit),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
-}
 
-class ButtonsPanel extends StatelessWidget {
-  const ButtonsPanel({super.key, required this.calcAppState});
-
-  final CalcAppState calcAppState;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            CalcButton(
-              symbol: 'C',
-              color: const Color.fromARGB(255, 138, 138, 138),
-              onPressed_: () {
-                calcAppState.clearSymbolInExp();
-              },
-            ),
-            CalcButton(
-              symbol: '(',
-              color: const Color.fromARGB(255, 138, 138, 138),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('(');
-              },
-            ),
-            CalcButton(
-              symbol: ')',
-              color: const Color.fromARGB(255, 138, 138, 138),
-              onPressed_: () {
-                calcAppState.addSymbolToExp(')');
-              },
-            ),
-            CalcButton(
-              symbol: '÷',
-              color: const Color.fromARGB(255, 248, 151, 67),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('÷');
-              },
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            CalcButton(
-              symbol: '7',
-              color: const Color.fromARGB(255, 200, 200, 200),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('7');
-              },
-            ),
-            CalcButton(
-              symbol: '8',
-              color: const Color.fromARGB(255, 200, 200, 200),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('8');
-              },
-            ),
-            CalcButton(
-              symbol: '9',
-              color: const Color.fromARGB(255, 200, 200, 200),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('9');
-              },
-            ),
-            CalcButton(
-              symbol: '×',
-              color: const Color.fromARGB(255, 248, 151, 67),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('×');
-              },
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            CalcButton(
-              symbol: '4',
-              color: const Color.fromARGB(255, 200, 200, 200),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('4');
-              },
-            ),
-            CalcButton(
-              symbol: '5',
-              color: const Color.fromARGB(255, 200, 200, 200),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('5');
-              },
-            ),
-            CalcButton(
-              symbol: '6',
-              color: const Color.fromARGB(255, 200, 200, 200),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('6');
-              },
-            ),
-            CalcButton(
-              symbol: '-',
-              color: const Color.fromARGB(255, 248, 151, 67),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('-');
-              },
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            CalcButton(
-              symbol: '1',
-              color: const Color.fromARGB(255, 200, 200, 200),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('1');
-              },
-            ),
-            CalcButton(
-              symbol: '2',
-              color: const Color.fromARGB(255, 200, 200, 200),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('2');
-              },
-            ),
-            CalcButton(
-              symbol: '3',
-              color: const Color.fromARGB(255, 200, 200, 200),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('3');
-              },
-            ),
-            CalcButton(
-              symbol: '+',
-              color: const Color.fromARGB(255, 248, 151, 67),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('+');
-              },
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            CalcButton(
-              symbol: '.',
-              color: const Color.fromARGB(255, 200, 200, 200),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('.');
-              },
-            ),
-            CalcButton(
-              symbol: '0',
-              color: const Color.fromARGB(255, 200, 200, 200),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('0');
-              },
-            ),
-            CalcButton(
-              symbol: '±',
-              color: const Color.fromARGB(255, 200, 200, 200),
-              onPressed_: () {
-                calcAppState.addSymbolToExp('±');
-              },
-            ),
-            CalcButton(
-              symbol: '=',
-              color: const Color.fromARGB(255, 248, 151, 67),
-              onPressed_: () {
-                calcAppState.doCalc();
-              },
-            ),
-          ],
-        ),
-      ],
-    );
+  void _evaluateExpression(String expression) async {
+    try {
+      final response = await http.post(
+        Uri.parse(
+            'http://${Calculator.serverIP}:${Calculator.serverPort}/calc'),
+        body: expression,
+      );
+      if (response.body.isNotEmpty) {
+        setState(() {
+          _currentExpression = response.body;
+        });
+      } else {
+        setState(() {
+          _currentExpression = "error";
+        });
+      }
+    } catch (exception, stackTrace) {
+      debugPrintStack(stackTrace: stackTrace, label: exception.toString());
+    }
   }
-}
 
-class ViewPanel extends StatelessWidget {
-  const ViewPanel({super.key, required this.currExp});
-
-  final String currExp;
-
-  @override
-  Widget build(BuildContext context) {
-    print(currExp);
-    return Card(
-      color: Colors.grey,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: SizedBox(
-          height: 50,
-          width: 236,
-          child: Row(
-            children: [
-              Expanded(child: Container(color: Colors.grey)),
-              Column(
-                children: [
-                  Expanded(child: Container(color: Colors.grey)),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal, // Или Axis.horizontal
-                    child: Text(
-                      currExp,
-                      style: TextStyle(color: Colors.black, fontSize: 25.0),
-                      overflow: TextOverflow.clip
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+  Future<void> _navigateToHistory() async {
+    var result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const HistoryPage()),
     );
+    if (result != null) {
+      setState(() {
+        _currentExpression = result.toString();
+      });
+    }
   }
-}
 
-class CalcButton extends StatelessWidget {
-  final double height;
-  final double width;
-  final double elevation;
-  final String symbol;
-  final Color color;
-  final double padding;
-  final VoidCallback onPressed_;
+  void _handleButtonPress(String buttonText) {
+    const List<String> operations = ['C', '±', '÷', '×', '-', '+', '='];
+    bool endsWithOperator = _currentExpression.isNotEmpty &&
+        operations.sublist(3).contains(
+            _currentExpression.substring(_currentExpression.length - 1));
+    if (operations.contains(buttonText)) {
+      if (_currentExpression.isEmpty) {
+        return; // do not append anything
+      } else if (buttonText == 'C') {
+        _delButton();
+        return;
+      } else if (buttonText == '±') {
+        _pmButton();
+        return;
+      } else if (buttonText == '=') {
+        setState(() {
+          _evaluateExpression(
+              _currentExpression.replaceAll('÷', '/').replaceAll('×', '*'));
+        });
+        return;
+      } else if (endsWithOperator) {
+        setState(() {
+          _currentExpression =
+              _currentExpression.substring(0, _currentExpression.length - 1);
+        });
+      }
+    }
+    setState(() {
+      _currentExpression += buttonText;
+    });
+  }
 
-  const CalcButton({
-    super.key,
-    required this.symbol,
-    required this.color,
-    required this.onPressed_,
-    this.padding = 5.0,
-    this.height = 50.0,
-    this.width = 10.0,
-    this.elevation = 20.0,
-  });
+  void _handleButtonLongPress(String buttonText) {
+    if (buttonText == 'C') {
+      setState(() {
+        _currentExpression = '';
+      });
+    }
+    if (_currentExpression == '42' && buttonText == '=') {
+      if (_expressionStyle == Theme.of(context).textTheme.displaySmall) {
+        _expressionStyle = Theme.of(context).textTheme.titleMedium;
+        setState(() {
+          _currentExpression = 'heapof&gvozd design';
+        });
+      } else {
+        setState(() {
+          _expressionStyle = Theme.of(context).textTheme.displaySmall;
+        });
+      }
+    }
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    // Если вы используете Provider для CalcAppState, то оставьте; иначе удалите строку.
-    // CalcAppState appState = context.watch<CalcAppState>();
-    return Padding(
-      padding: EdgeInsets.all(padding),
-      child: ElevatedButton(
-        onPressed: onPressed_,
-        style: ElevatedButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            // или ContinuousRectangleBorder()
-            borderRadius: BorderRadius.circular(3.5), // Для квадратной кнопки
-          ),
-          elevation: elevation,
-          fixedSize: Size(width, height),
-          backgroundColor: color,
-        ),
-        child: Text(
-          symbol,
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-    );
+  void _delButton() {
+    if (_currentExpression.length == 2 && _currentExpression.startsWith('-')) {
+      setState(() {
+        _currentExpression = '';
+      });
+    } else {
+      setState(() {
+        _currentExpression =
+            _currentExpression.substring(0, _currentExpression.length - 1);
+      });
+    }
+  }
+
+  void _pmButton() {
+    String operators = r'[÷×\-+(]';
+    int index = _currentExpression.lastIndexOf(RegExp(operators));
+    if (index == -1) {
+      setState(() {
+        _currentExpression = '-$_currentExpression';
+      });
+    } else if (_currentExpression[index] == '+') {
+      setState(() {
+        _currentExpression =
+            _currentExpression.replaceRange(index, index + 1, '-');
+      });
+    } else if (_currentExpression[index] == '-') {
+      if (index == 0 ||
+          RegExp(operators).hasMatch(_currentExpression[index - 1])) {
+        setState(() {
+          _currentExpression =
+              _currentExpression.replaceRange(index, index + 1, '');
+        });
+      } else {
+        setState(() {
+          _currentExpression =
+              _currentExpression.replaceRange(index, index + 1, '+');
+        });
+      }
+    } else {
+      setState(() {
+        _currentExpression =
+            _currentExpression.replaceRange(index + 1, index + 1, '-');
+      });
+    }
   }
 }
