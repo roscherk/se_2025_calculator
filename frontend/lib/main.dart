@@ -18,7 +18,7 @@ Future<void> main() async {
   // опции окна: начальный размер и минимальный размер
   const WindowOptions windowOptions = WindowOptions(
     //size: Size(800, 600),
-    minimumSize: Size(1000, 1000),
+    minimumSize: Size(500, 600),
     center: true,
   );
 
@@ -28,7 +28,7 @@ Future<void> main() async {
     await windowManager.focus();
   });
 
-  await windowManager.setMinimumSize(const Size(1000, 1000));
+  await windowManager.setMinimumSize(const Size(500, 600));
 
   runApp(const CalcApp());
 }
