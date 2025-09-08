@@ -4,7 +4,11 @@ WORKDIR /app
 
 COPY . .
 
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+ENV PATH="${PATH}:$(go env GOPATH)/bin"
+
 RUN go mod download
+RUN swag init main.go
 
 WORKDIR /app
 RUN go build -o se_2025_calculator .
