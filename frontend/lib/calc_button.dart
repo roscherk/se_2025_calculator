@@ -78,6 +78,7 @@ class _CalcButtonState extends State<CalcButton> {
         onTapCancel: _tapCancel,
         child: OutlinedButton(
           style: OutlinedButton.styleFrom(
+            overlayColor: Colors.transparent,
             backgroundColor: widget.color,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),

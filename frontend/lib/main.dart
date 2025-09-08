@@ -120,20 +120,131 @@ class _CalculatorHomePageState extends ConsumerState<CalculatorHomePage> {
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           var notificationBarHeight = constants.topPadding;
-          var availableHeight = constraints.maxHeight -
-              notificationBarHeight -
-              constants.bottomPadding;
-          var textBoxSize = availableHeight / 3;
-          var keyboardSize = availableHeight * 2 / 3;
-          var buttonSize = Size(
-            constants.paddingUnit * 9, constants.paddingUnit * 9
-          );
+          // var availableHeight = constraints.maxHeight -
+          notificationBarHeight - constants.bottomPadding;
+          // var textBoxSize = availableHeight / 3;
+          // var keyboardSize = availableHeight * 2 / 3;
+          var buttonSize =
+              Size(constants.paddingUnit * 9, constants.paddingUnit * 9);
 
           return SafeArea(
             child: Column(
               children: [
-                Expanded(flex: 121, child: Placeholder()),
-                Expanded(flex: 73, child: Placeholder()),
+                Expanded(flex: 101, child: Container()),
+                Expanded(
+                    flex: 93,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                          left: constants.paddingUnit * 3,
+                          right: constants.paddingUnit * 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton(
+                            style: TextButton.styleFrom(overlayColor: Colors.transparent),
+                              onPressed: () => _navigateToHistory(),
+                              child: Text('History',
+                                  style: TextStyle(
+                                      fontSize: constants.paddingUnit * 5,
+                                      color: Colors.black))),
+                          SizedBox(
+                              width: constants.paddingUnit * 18.5,
+                              height: constants.paddingUnit * 5,
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                      child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.only(
+                                          topLeft: Radius.circular(
+                                              constants.dOuterRadius / 2),
+                                          bottomLeft: Radius.circular(
+                                              constants.dOuterRadius / 2)),
+                                      color: const Color(0xFFB09C98),
+                                      border: BoxBorder.fromLTRB(
+                                          top: BorderSide(
+                                              color: Colors.black,
+                                              width: constants.paddingUnit / 2),
+                                          bottom: BorderSide(
+                                              color: Colors.black,
+                                              width: constants.paddingUnit / 2),
+                                          right: BorderSide(
+                                              color: Colors.black,
+                                              width: constants.paddingUnit / 4),
+                                          left: BorderSide(
+                                              color: Colors.black,
+                                              width:
+                                                  constants.paddingUnit / 2)),
+                                    ),
+                                  )),
+                                  Expanded(
+                                      child: Container(
+                                          decoration: BoxDecoration(
+                                    color: const Color(0xFFB09C98),
+                                    border: BoxBorder.fromLTRB(
+                                        top: BorderSide(
+                                            color: Colors.black,
+                                            width: constants.paddingUnit / 2),
+                                        bottom: BorderSide(
+                                            color: Colors.black,
+                                            width: constants.paddingUnit / 2),
+                                        right: BorderSide(
+                                            color: Colors.black,
+                                            width: constants.paddingUnit / 4),
+                                        left: BorderSide(
+                                            color: Colors.black,
+                                            width: constants.paddingUnit / 4)),
+                                  ))),
+                                  Expanded(
+                                      child: Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFB09C98),
+                                      border: BoxBorder.fromLTRB(
+                                          top: BorderSide(
+                                              color: Colors.black,
+                                              width: constants.paddingUnit / 2),
+                                          bottom: BorderSide(
+                                              color: Colors.black,
+                                              width: constants.paddingUnit / 2),
+                                          right: BorderSide(
+                                              color: Colors.black,
+                                              width: constants.paddingUnit / 4),
+                                          left: BorderSide(
+                                              color: Colors.black,
+                                              width:
+                                                  constants.paddingUnit / 4)),
+                                    ),
+                                  )),
+                                  Expanded(
+                                      child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.only(
+                                          topRight: Radius.circular(
+                                              constants.dOuterRadius / 2),
+                                          bottomRight: Radius.circular(
+                                              constants.dOuterRadius / 2)),
+                                      color: const Color(0xFFB09C98),
+                                      border: BoxBorder.fromLTRB(
+                                          top: BorderSide(
+                                              color: Colors.black,
+                                              width: constants.paddingUnit / 2),
+                                          bottom: BorderSide(
+                                              color: Colors.black,
+                                              width: constants.paddingUnit / 2),
+                                          right: BorderSide(
+                                              color: Colors.black,
+                                              width: constants.paddingUnit / 2),
+                                          left: BorderSide(
+                                              color: Colors.black,
+                                              width:
+                                                  constants.paddingUnit / 4)),
+                                    ),
+                                  )),
+                                ],
+                              ))
+                        ],
+                      ),
+                    )),
                 Expanded(
                   flex: 145,
                   child: Padding(
@@ -146,7 +257,7 @@ class _CalculatorHomePageState extends ConsumerState<CalculatorHomePage> {
                           color: Colors.white,
                           borderRadius:
                               BorderRadius.circular(constants.dOuterRadius),
-                          border: BoxBorder.all(
+                          border: Border.all(
                               color: Colors.black,
                               width: constants.paddingUnit)),
                       child: Padding(
@@ -179,12 +290,14 @@ class _CalculatorHomePageState extends ConsumerState<CalculatorHomePage> {
                 Expanded(
                   flex: 493,
                   child: Padding(
-                    padding: EdgeInsets.only(left: constants.paddingUnit * 3, right: constants.paddingUnit * 3),
+                    padding: EdgeInsets.only(
+                        left: constants.paddingUnit * 3,
+                        right: constants.paddingUnit * 3),
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        final numRows = buttons.length;
-                        final buttonSide = constants.paddingUnit;
-                    
+                        // final numRows = buttons.length;
+                        // final buttonSide = constants.paddingUnit;
+
                         return GestureDetector(
                           onPanUpdate: (details) {
                             const xSensitivity = 8;
@@ -204,34 +317,35 @@ class _CalculatorHomePageState extends ConsumerState<CalculatorHomePage> {
                                   children: List.generate(
                                     buttons[row].length,
                                     (col) {
-                                      const colorA =
-                                          Color(0xFFB3B3B3); // Серый
+                                      const colorA = Color(0xFFB3B3B3); // Серый
                                       const colorB =
                                           Color(0xFFD8BC8C); // Бледно-желтый
                                       const colorC =
                                           Color(0xFFE8E8E8); // Светло-серый
-                    
+
                                       bool isFirstRowSpecial =
                                           row == 0 && col < 3;
                                       bool isLastCol =
                                           col == buttons[row].length - 1;
-                    
+
                                       final backgroundColor = isFirstRowSpecial
                                           ? colorA
                                           : (isLastCol ? colorB : colorC);
-                    
+
                                       return CalcButton(
                                         buttonText: buttons[row][col],
                                         size: buttonSize,
                                         color: backgroundColor,
                                         textSize: constants.paddingUnit * 13,
-                                        onPressed: () =>
-                                            _handleButtonPress(buttons[row][col]),
-                                        onLongPress: () => _handleButtonLongPress(
+                                        onPressed: () => _handleButtonPress(
                                             buttons[row][col]),
+                                        onLongPress: () =>
+                                            _handleButtonLongPress(
+                                                buttons[row][col]),
                                         borderColor: Colors.black,
                                         textColor: Colors.black,
-                                        margin: EdgeInsets.all(constants.paddingUnit),
+                                        margin: EdgeInsets.all(
+                                            constants.paddingUnit),
                                       );
                                     },
                                   ),
