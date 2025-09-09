@@ -26,12 +26,12 @@ type RoutesHandler struct {
 type ErrorResponse struct {
 	Success bool        `json:"success"`
 	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
+	Error   string      `json:"error"`
 }
 
 type RegisterResponse struct {
 	Success bool   `json:"success"`
-	Data    int    `json:"data,omitempty"`
+	Data    int    `json:"data"`
 	Error   string `json:"error,omitempty"`
 }
 
@@ -168,7 +168,7 @@ type CalculationRequest struct {
 
 type CalculationResponse struct {
 	Success bool    `json:"success"`
-	Data    float64 `json:"data,omitempty"`
+	Data    float64 `json:"data"`
 	Error   string  `json:"error,omitempty"`
 }
 
