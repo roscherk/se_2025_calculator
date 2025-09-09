@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -61,8 +62,6 @@ class WidgetsAppWithMediaQuery extends StatelessWidget {
 
 class Calculator extends StatelessWidget {
   const Calculator({super.key});
-  static const serverIP = '93.95.97.57';
-  static const serverPort = '8080';
 
   @override
   Widget build(BuildContext context) {
@@ -368,14 +367,20 @@ class _CalculatorHomePageState extends ConsumerState<CalculatorHomePage> {
 
   void _evaluateExpression(String expression) async {
     try {
+      debugPrint("Oh hi, Mark!");
       final response = await http.post(
         Uri.parse(
-            'http://${Calculator.serverIP}:${Calculator.serverPort}/calc'),
-        body: expression,
+            'http://${Constants.serverAddress}/calculate'),
+        headers: {'Content-Type': 'application/json; charset=utf-8',},
+        body: jsonEncode({
+          "expression": expression,
+          "user_id": 1,
+        })
       );
-      if (response.body.isNotEmpty) {
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        final json = jsonDecode(response.body);
         setState(() {
-          _currentExpression = response.body;
+          _currentExpression = json["data"].toString();
         });
       } else {
         setState(() {
@@ -414,10 +419,8 @@ class _CalculatorHomePageState extends ConsumerState<CalculatorHomePage> {
         _pmButton();
         return;
       } else if (buttonText == '=') {
-        setState(() {
-          _evaluateExpression(
-              _currentExpression.replaceAll('÷', '/').replaceAll('×', '*'));
-        });
+        _evaluateExpression(
+            _currentExpression.replaceAll('÷', '/').replaceAll('×', '*'));
         return;
       } else if (endsWithOperator) {
         setState(() {

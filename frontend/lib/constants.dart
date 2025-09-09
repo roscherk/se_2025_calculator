@@ -72,7 +72,7 @@ class Constants {
   ];
 
   /// IP-адрес сервера (включает в себя порт).
-  static const serverAddress = '';
+  static const serverAddress = 'localhost:8000';
 
   /// Таймаут для запросов на сервер.
   static const networkTimeout = Duration(seconds: 5);
