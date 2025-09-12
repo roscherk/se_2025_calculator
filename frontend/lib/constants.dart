@@ -75,7 +75,7 @@ class Constants {
   ];
 
   /// IP-адрес сервера (включает в себя порт).
-  static const serverAddress = 'localhost:8000';
+  static const serverAddress = '10.0.2.2:8000';
 
   /// Таймаут для запросов на сервер.
   static const networkTimeout = Duration(seconds: 5);
@@ -128,20 +128,15 @@ final constantsProvider =
 // Key used to store user id in shared preferences.
 const _kUserIdKey = 'user_id';
 
-/// Provides the current user id. On first access it attempts to read the id
-/// from local storage; if not found it registers the user on the backend and
-/// stores the returned id locally.
+
 final userIdProvider = FutureProvider<int>((ref) async {
   final prefs = await SharedPreferences.getInstance();
   final stored = prefs.getInt(_kUserIdKey);
   if (stored != null) return stored;
 
-  // If no id stored - register on backend
-  final resp = await http.post(Uri.parse('http://${Constants.serverAddress}/register'),
-      headers: {'Content-Type': 'application/json; charset=utf-8'},
-      body: jsonEncode({}));
-  if (resp.statusCode == 200 && resp.body.isNotEmpty) {
-    final parsed = jsonDecode(resp.body);
+  final response = await http.get(Uri.parse('http://${Constants.serverAddress}/register'));
+  if (response.statusCode == 200 && response.body.isNotEmpty) {
+    final parsed = jsonDecode(response.body);
     // backend expected to return either the id directly or in a data field
     final rawId = parsed is Map && parsed.containsKey('data') ? parsed['data'] : parsed;
     final id = rawId is int ? rawId : int.parse(rawId.toString());
