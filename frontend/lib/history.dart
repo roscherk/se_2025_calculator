@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:sprint_0_calculator/constants.dart';
 
 class HistoryPage extends ConsumerWidget {
@@ -12,7 +15,6 @@ class HistoryPage extends ConsumerWidget {
 
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark
         .copyWith(systemNavigationBarColor: const Color(0xFF9D9D9D)));
-    var history = _getHistory();
     return Scaffold(
       backgroundColor: const Color(0xFF9D9D9D),
       body: SafeArea(
@@ -86,37 +88,51 @@ class HistoryPage extends ConsumerWidget {
                             },
                             child: SizedBox(
                               height: expressionListHeight,
-                              child: ListView(
-                                padding: EdgeInsets.zero,
-                                scrollDirection: Axis.vertical,
-                                children: List.generate(
-                                    history.length,
-                                    (index) => SingleChildScrollView(
-                                          scrollDirection: Axis.horizontal,
-                                          reverse: true,
-                                          child: SizedBox(
-                                            height: availableHeight /
-                                                expressionsOnPage,
-                                            child: TextButton(
-                                              onLongPress: () {
-                                                Navigator.pop(
-                                                    context, history[index][0]);
-                                              },
-                                              onPressed: () {
-                                                Navigator.pop(
-                                                    context, history[index][1]);
-                                              },
-                                              child: Align(
-                                                alignment:
-                                                    Alignment.centerRight,
-                                                child: Text(
-                                                  '${history[index][0]} = ${history[index][1]}',
-                                                  style: TextStyle(color: Colors.black, fontSize: constants.paddingUnit * 5),
+                              child: FutureBuilder<List<String>>(
+                                future: ref.read(userIdProvider.future).then((id) => _getHistory(id)),
+                                builder: (context, snapshot) {
+                                  debugPrint("Oh hi, Mark! snapshot = $snapshot");
+                                  if (snapshot.hasData) {
+                                    final history = snapshot.data!;
+                                    return ListView(
+                                      padding: EdgeInsets.zero,
+                                      scrollDirection: Axis.vertical,
+                                      children: List.generate(
+                                          history.length,
+                                              (index) => SingleChildScrollView(
+                                            scrollDirection: Axis.horizontal,
+                                            reverse: true,
+                                            child: SizedBox(
+                                              height: availableHeight /
+                                                  expressionsOnPage,
+                                              child: TextButton(
+                                                onLongPress: () {
+                                                  Navigator.pop(
+                                                      context, history[index].split('=')[0]);
+                                                },
+                                                onPressed: () {
+                                                  Navigator.pop(
+                                                      context, history[index].split('=')[1]);
+                                                },
+                                                child: Align(
+                                                  alignment:
+                                                  Alignment.centerRight,
+                                                  child: Text(
+                                                    history[index],
+                                                    style: TextStyle(color: Colors.black, fontSize: constants.paddingUnit * 5),
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                        )),
+                                          )),
+                                    );
+                                  } else if (snapshot.hasError) {
+                                    debugPrint("returning error state");
+                                    return Container(child: Text("Error occurred :("));
+                                  } else {
+                                    return CircularProgressIndicator();
+                                  }
+                                }
                               ),
                             ),
                           ),
@@ -131,39 +147,19 @@ class HistoryPage extends ConsumerWidget {
     );
   }
 
-  List<List<String>> _getHistory() {
-    // TODO: сделать запрос к серверу и получить список с историей выражений
-    // for lulz and testing
+  Future<List<String>> _getHistory(int userId) async {
+    final response = await http.get(
+        Uri.parse(
+            'http://${Constants.serverAddress}/history/$userId')
+    );
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      debugPrint("json = $json, returning ${json["data"]}");
+      return List<String>.from(json["data"]);
+    }
     return [
-      ['2+2', '4'],
-      ['2+2*2', '6'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['Very-very-very-very-very-very-very request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['Very-very-very-very-very-very-very request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
-      ['request', 'result'],
+      '2+2 = 4',
+      'wth+wtf=hell nah'
     ];
   }
 }
