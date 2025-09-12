@@ -88,8 +88,8 @@ class HistoryPage extends ConsumerWidget {
                             },
                             child: SizedBox(
                               height: expressionListHeight,
-                              child: FutureBuilder(
-                                future: _getHistory(),
+                              child: FutureBuilder<List<String>>(
+                                future: ref.read(userIdProvider.future).then((id) => _getHistory(id)),
                                 builder: (context, snapshot) {
                                   debugPrint("Oh hi, Mark! snapshot = $snapshot");
                                   if (snapshot.hasData) {
@@ -147,10 +147,10 @@ class HistoryPage extends ConsumerWidget {
     );
   }
 
-  Future<List<String>> _getHistory() async {
+  Future<List<String>> _getHistory(int userId) async {
     final response = await http.get(
         Uri.parse(
-            'http://${Constants.serverAddress}/history/1')
+            'http://${Constants.serverAddress}/history/$userId')
     );
     if (response.statusCode == 200) {
       final json = jsonDecode(response.body);

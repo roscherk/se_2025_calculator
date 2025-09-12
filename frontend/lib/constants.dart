@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 class Constants {
   /// Единичный отступ, на основании которого считаются все остальные отступы.
@@ -121,3 +124,30 @@ class Constants {
 
 final constantsProvider =
     Provider<Constants>((ref) => throw UnimplementedError());
+
+// Key used to store user id in shared preferences.
+const _kUserIdKey = 'user_id';
+
+/// Provides the current user id. On first access it attempts to read the id
+/// from local storage; if not found it registers the user on the backend and
+/// stores the returned id locally.
+final userIdProvider = FutureProvider<int>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  final stored = prefs.getInt(_kUserIdKey);
+  if (stored != null) return stored;
+
+  // If no id stored - register on backend
+  final resp = await http.post(Uri.parse('http://${Constants.serverAddress}/register'),
+      headers: {'Content-Type': 'application/json; charset=utf-8'},
+      body: jsonEncode({}));
+  if (resp.statusCode == 200 && resp.body.isNotEmpty) {
+    final parsed = jsonDecode(resp.body);
+    // backend expected to return either the id directly or in a data field
+    final rawId = parsed is Map && parsed.containsKey('data') ? parsed['data'] : parsed;
+    final id = rawId is int ? rawId : int.parse(rawId.toString());
+    await prefs.setInt(_kUserIdKey, id);
+    return id;
+  }
+
+  throw Exception('Failed to obtain user id from backend');
+});

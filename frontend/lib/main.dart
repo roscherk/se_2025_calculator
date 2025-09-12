@@ -368,13 +368,14 @@ class _CalculatorHomePageState extends ConsumerState<CalculatorHomePage> {
   void _evaluateExpression(String expression) async {
     try {
       debugPrint("Oh hi, Mark!");
+      final userId = await ref.read(userIdProvider.future);
       final response = await http.post(
         Uri.parse(
             'http://${Constants.serverAddress}/calculate'),
         headers: {'Content-Type': 'application/json; charset=utf-8',},
         body: jsonEncode({
           "expression": expression,
-          "user_id": 1,
+          "user_id": userId,
         })
       );
       if (response.statusCode == 200 && response.body.isNotEmpty) {
